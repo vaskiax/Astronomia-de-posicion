@@ -1,8 +1,8 @@
-day = 28#int(input("Ingrese el dia\n"))
-month = 11#int(input("Ingrese el mes\n"))
-year = 2015#int(input("Ingrese el año\n"))
-longitude = '74º25\'8"W'#input('Ingrese la longitud\n')
-localHour = '20h15m30s'#input('Ingrese la hora local\n')
+day = 17 #int(input("Ingrese el dia\n"))
+month = 3#int(input("Ingrese el mes\n"))
+year = 2020#int(input("Ingrese el año\n"))
+longitude = '75º33\'49"W'#input('Ingrese la longitud\n')
+localHour = '0h0m0s'#input('Ingrese la hora local\n')
 
 def dms2dec(coordinate):
 
@@ -59,4 +59,58 @@ def TSL(day, month, year, position, TL):
 
     return tsl - finalCount/15 if finalCount > 0 else tsl + finalCount/15
 
-print(TSL(day,month,year,longitude,localHour))
+def sunCoordinates(day, month, year):
+
+    from numpy import sin, cos, arcsin, arctan, pi, arange
+
+    numberOfDays = [31,28,31,30,31,30,31,31,30,31,30,31]
+    sunVelocity = 360/365.25
+    dayList = [range(1, i+1) for i in numberOfDays]
+    days = []
+    for i in dayList:
+        days.append(list(i))
+
+    months = days[3:month-1] if month > 3 else days[:2]
+    cumDays = sum([len(i) for i in months]) + day if month > 3 else sum([len(i) for i in months]) - day
+    cumDays = cumDays if month < 3 else cumDays + 12
+
+    if month == 3:
+        cumDays = abs(19-day)
+    if month == 2:
+        cumDays = 47
+    if month == 1:
+        cumDays = 47 + (31-day)
+
+
+    angle = sunVelocity*cumDays
+    firstEclipticLon = 360*((angle/(360))-int(angle/(360)))
+    eclipticLat = 0
+    finalEclipticLon = 0
+    ecliptic = (23.27*pi)/180
+
+    if year == 2020:
+        if month < 3:
+            finalEclipticLon = firstEclipticLon
+        elif month == 3:
+            if day < 19:
+                finalEclipticLon = 360 - firstEclipticLon
+            else:
+                finalEclipticLon = firstEclipticLon
+        else:
+            finalEclipticLon = firstEclipticLon
+    elif year < 2020:
+        finalEclipticLon = 360 - firstEclipticLon
+    else:
+        finalEclipticLon = firstEclipticLon
+
+    finalEclipticLon = (finalEclipticLon*pi)/180
+    ra1 = -sin(eclipticLat)*sin(ecliptic)+cos(eclipticLat)*cos(ecliptic)*sin(finalEclipticLon)
+    ra2 = cos(finalEclipticLon)*cos(eclipticLat)
+    rightAscension = abs((arctan(ra1/ra2)*180)/pi) if month > 3 else 360 - abs((arctan(ra1/ra2)*180)/pi)
+
+    declination = abs((arcsin(sin(eclipticLat)*cos(ecliptic)+cos(eclipticLat)*sin(ecliptic)*sin(finalEclipticLon))*180)/pi)
+
+    return rightAscension, declination
+
+
+print(sunCoordinates(day,month,year))
