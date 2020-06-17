@@ -66,7 +66,7 @@ def hour2hms(lat):
     latitude = []
 
     #conversion de punto flotante a formato dms
-    latitude.append(str(int(lat/15))+'h')
+    latitude.append(str(int(lat))+'h')
     inter = abs((lat-int(lat)))*60
     latitude.append(str(int((inter)))+"m")
     inter2 = (inter - int(inter))*60
@@ -177,7 +177,7 @@ def nutation(day, month, year, rightAscension, declination):
     deltaRa = (cos(moonDatas[3])+sin(moonDatas[3])*sin(ra)*tan(dec))*deltaY - cos(ra)*tan(dec)*deltaE
     deltaDec = sin(moonDatas[3])*cos(ra)*deltaY + sin(ra)*deltaE
 
-    trueRa = hour2hms(hms2hour(rightAscension)+deltaRa+90)
+    trueRa = hms2hour(rightAscension)+deltaRa#hour2hms()
     trueDec = toHourAngle(hms2hour(declination)+deltaDec)
     trueE = moonDatas[3]+deltaE
 
