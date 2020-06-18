@@ -4,7 +4,13 @@ year = 2010#int(input("Ingrese el año\n"))
 longitude = '7h30m0s'#input('Ingrese la longitud\n')
 latitude = '65h12m0s'#int(input('Ingrese la latitud del lugar\n'))
 localHour = '0h0m0s'#input('Ingrese la hora local\n')
+longitud = '359º17\'44"N'
+latitud = '17º35\'37"N'
+"""
+Funciones para realizar conversiones, algunas se repitieron con pequeños cambios
+para no afectar otras funciones previamente creadas pero no debe tenerse en cuenta
 
+"""
 def dms2dec(coordinate):
 
     #eliminacion de caracteres especiales
@@ -40,7 +46,7 @@ def toHourAngle(degree):
     degrees = degree
     ent2 = abs((degrees - int(degrees))*60)
     ent3 = abs((ent2 - int(ent2))*60)
-    declination = str(int(degrees))+'º'+str(int(ent2))+'´'+str(int(ent3))+'\"'
+    declination = str(int(degrees))+'º'+str(int(ent2))+"´"+str(int(ent3))+'\"'
 
     return declination
 
@@ -61,6 +67,26 @@ def hms2hour(hms):
 
     return hour
 
+def hmstodec(hms):
+    conversion = hms.replace('h'," ").replace('m'," ").replace('s', " ").split()
+    hour = (float(conversion[0]) + float(conversion[1])/60 + float(conversion[2])/3600)*15
+    return hour
+
+def dectohms(lat):
+    latitude = []
+
+    #conversion de punto flotante a formato dms
+    latitude.append(str(int(lat/15))+'h')
+    inter = abs((lat-int(lat)))*60
+    latitude.append(str(int((inter)))+"m")
+    inter2 = (inter - int(inter))*60
+    latitude.append(str(int(inter2))+"s")
+
+
+    latitude = latitude[0]+" "+latitude[1]+" "+latitude[2]+' '
+
+    return latitude
+
 def hour2hms(lat):
     #Parsear las coordenadas en formato grados, minutos, segundos
     latitude = []
@@ -76,7 +102,11 @@ def hour2hms(lat):
     latitude = latitude[0]+" "+latitude[1]+" "+latitude[2]+' '
 
     return latitude
+"""
+Estas ya las había creado con anterioridad y para el caso de este taller
+solo se hizo uso de la funcion fechaJuliana
 
+"""
 def tiempoUniversal (TSOLM, longitude):
 
     longitude = dms2dec(longitude)
@@ -110,36 +140,45 @@ def TSL(day, month, year, position, TL):
     finalCount = dms2dec(position)
 
     return tsl - finalCount/15 if finalCount > 0 else tsl + finalCount/15
+"""
+Estas son las funciones usadas para el desarrollo de los puntos del taller 7:
 
+la funcion passedTime fue especifica para el punto numero 6 dado que en este
+se realizaron transformaciones de coordenadas y ademas las fechas no se ingresaron
+como variables sino como valores fijos dentro de la funcion, por tanto, si se quiere
+probar con fechas distintias en necesario modificar las entradas en la funcion
+
+"""
 def MandN(day, month, year):
 
     T = (fechaJuliana(day, month, year) - 2451545)/36525
-    m1 = dms2dec('1.2812323º0.00001\'0.0001\"N')*T
-    m2 = dms2dec('0.003879º0.00001\'0.00001\"N')*T**2
-    m3 = dms2dec('0.0001101º0.00001\'0.00001\"N')*T**3
+    m1 = dms2dec('1.2812323º0\'0\"N')*T
+    m2 = dms2dec('0.0003879º0\'0\"N')*T**2
+    m3 = dms2dec('0.00001101º0\'0\"N')*T**3
 
-    n1 = dms2dec('0.5567530º0.00001\'0.00001\"N')*T
-    n2 = dms2dec('0.001185º0.00001\'0.00001\"N')*T**2
-    n3 = dms2dec('0.000116º0.00001\'0.00001\"N')*T**3
+    n1 = dms2dec('0.5567530º0\'0\"N')*T
+    n2 = dms2dec('0.0001185º0\'0\"N')*T**2
+    n3 = dms2dec('0.0000116º0\'0\"N')*T**3
 
     M = m1+m2+m3
     N = n1-n2-n3
 
     return M,N,T
 
-def dateTransform(day, month, year, ra, dec):
+def precesion(day, month, year, ra, dec, decDegree = False ,final=False):
     from numpy import sin, cos, tan
 
     MN = MandN(day, month, year)
-    ra = hms2hour(ra)
-    dec = hms2hour(dec)
-    ram = ra + (MN[0] + MN[1]*sin(radians(ra))*tan(radians(dec)))*0.5 + 90
-    decm = dec + MN[1]*cos(radians(ram))*0.5
+    ra = hmstodec(ra)
+    dec = hms2hour(dec) if decDegree==False else dec
+    ram = ra + (MN[0] + MN[1]*sin(ra)*tan(dec))*0.5
+    decm = dec + (MN[1]*cos(ram))*0.5
 
-    rightAscension = ra + MN[0] + MN[1]*sin(radians(ram))*tan(radians(decm)) +90
-    declination = dec + MN[1]*cos(radians(ram))
+    rightAscension = ra + MN[0] + MN[1]*sin(ram)*tan(decm)
+    declination = dec + MN[1]*cos(ram)
 
-    return rightAscension, declination, ram, decm
+    return dectohms(rightAscension), declination if final==False else \
+    toHourAngle(declination), ra, ram
 
 def moonData(day, month, year):
 
@@ -160,8 +199,8 @@ def nutation(day, month, year, rightAscension, declination):
     from numpy import sin, cos, tan
 
     moonDatas = moonData(day, month, year)
-    coordinates = dateTransform(day, month, year, rightAscension, declination)
-    ra = radians(coordinates[0])
+    coordinates = precesion(day, month, year, rightAscension, declination)
+    ra = radians(hmstodec(coordinates[0]))
     dec = radians(coordinates[1])
 
     deltaY = -hms2hour('0h0m17.2s')*sin(moonDatas[0]) \
@@ -177,11 +216,45 @@ def nutation(day, month, year, rightAscension, declination):
     deltaRa = (cos(moonDatas[3])+sin(moonDatas[3])*sin(ra)*tan(dec))*deltaY - cos(ra)*tan(dec)*deltaE
     deltaDec = sin(moonDatas[3])*cos(ra)*deltaY + sin(ra)*deltaE
 
-    trueRa = hms2hour(rightAscension)+deltaRa#hour2hms()
+    trueRa = dectohms(hmstodec(rightAscension)+deltaRa)
     trueDec = toHourAngle(hms2hour(declination)+deltaDec)
     trueE = moonDatas[3]+deltaE
 
-    return trueRa, trueDec, trueE, deltaRa, deltaDec, toHourAngle(degrees(moonDatas[3]))
+    return trueRa, trueDec
+
+def passedTime(day=1, month=1, year=2000,longitud, latitud):
+
+    from astropy.coordinates import SkyCoord
+    celestials = SkyCoord(str(dms2dec(longitud)),str(dms2dec(latitud)),\
+    frame='geocentrictrueecliptic', unit='deg')
+
+    celestials = celestials.transform_to('icrs')
+
+    ra = celestials.ra.deg
+    dec = celestials.dec.degree
+
+    """
+    Cambiar las fechas a las variables day, month, year en la funcion
+    precesion para para hacer pruebas con otros valores si se desea.
+    """
+    years10 = precesion(1,1,2010,dectohms(ra),dec, decDegree=True)
+    years100 = precesion(1,1,2100,dectohms(ra),dec, decDegree=True)
+
+    coorYears10 = SkyCoord(str(hmstodec(years10[0])),\
+    str(years10[1]),frame='icrs', unit='deg').transform_to('geocentrictrueecliptic')
+
+    coorYears10 = toHourAngle(coorYears10.lon.degree),\
+    toHourAngle(coorYears10.lat.degree)
+
+    coorYears100 = SkyCoord(str(hmstodec(years100[0])),\
+    str(years100[1]),frame='icrs', unit='deg').transform_to('geocentrictrueecliptic')
+
+    coorYears100 = toHourAngle(coorYears100.lon.degree),\
+    toHourAngle(coorYears100.lat.degree)
+
+    return coorYears10, coorYears100
 
 
-print(nutation(day, month, year, longitude, latitude),sep='\n')
+print(nutation(day, month, year, longitude, latitude),\
+precesion(day,month,year,longitude,latitude, final=True),\
+passedTime(longitud,latitud), sep='\n')
